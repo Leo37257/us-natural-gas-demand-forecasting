@@ -1,5 +1,32 @@
 # Does the winning forecast model survive a different test window?
 
+> Forecasting U.S. monthly natural gas demand: single 24-month holdout → rolling-origin
+> cross-validation over ~100 windows → the model ranking reverses.
+
+<p align="center">
+  <img alt="best mean MASE" src="https://img.shields.io/badge/best%20mean%20MASE-0.93-00aa55?style=flat-square&labelColor=2a323d">
+  <img alt="origins" src="https://img.shields.io/badge/rolling%20origins-~100-00aa55?style=flat-square&labelColor=2a323d">
+  <img alt="horizons" src="https://img.shields.io/badge/horizons-1--24%20months-00aa55?style=flat-square&labelColor=2a323d">
+  <img alt="finding" src="https://img.shields.io/badge/finding-ranking%20reversed-ec5800?style=flat-square&labelColor=2a323d">
+</p>
+
+<p align="center">
+  <img alt="Course" src="https://img.shields.io/badge/Course-ADSP%2031006-DC143C?style=flat-square&labelColor=2a323d">
+  <img alt="UChicago" src="https://img.shields.io/badge/UChicago-Time%20Series-800000?style=flat-square&labelColor=2a323d">
+  <img alt="Term" src="https://img.shields.io/badge/Term-Winter%202026-2a323d?style=flat-square&labelColor=2a323d">
+  <img alt="Team" src="https://img.shields.io/badge/Team-Group%20of%204-1f7a3d?style=flat-square&labelColor=2a323d">
+  <img alt="Extension" src="https://img.shields.io/badge/Validation-solo%20extension-7B68EE?style=flat-square&labelColor=2a323d">
+</p>
+
+<p align="center">
+  <img alt="R" src="https://img.shields.io/badge/R-4.5-276DC3?style=flat-square&logo=r&logoColor=white&labelColor=2a323d">
+  <img alt="forecast" src="https://img.shields.io/badge/forecast-8.23-13ADC7?style=flat-square&labelColor=2a323d">
+  <img alt="ggplot2" src="https://img.shields.io/badge/ggplot2-3.5-F7931E?style=flat-square&labelColor=2a323d">
+  <img alt="Data" src="https://img.shields.io/badge/EIA-240%20months-0194E2?style=flat-square&labelColor=2a323d">
+</p>
+
+---
+
 I built a forecasting study for U.S. monthly natural gas consumption that concluded
 multiplicative Holt-Winters was the best model, beating SARIMA and a seasonal naive
 benchmark on a 24-month holdout. This repository re-runs that comparison under
@@ -11,6 +38,33 @@ second place on the holdout — is the only model that stays under MASE 1.0 from
 one-month to a two-year horizon.
 
 ![MASE by forecast horizon](results/mase_by_horizon.png)
+
+## How the validation works
+
+A single holdout scores each model once. Rolling-origin validation moves the
+train/test boundary forward one month at a time, refitting from scratch at every
+position, so the comparison rests on ~100 independent forecasts per horizon
+instead of one.
+
+```mermaid
+flowchart LR
+    raw["EIA monthly series<br/>240 obs · 2006-2025"] --> loop
+
+    subgraph loop ["for each origin t = 120 … 239"]
+        direction TB
+        fit["refit all four models<br/>on y[1..t] only"] --> fc["forecast h = 1..24"]
+        fc --> err["record e[t, h]"]
+    end
+
+    loop --> agg["aggregate |e| by horizon<br/>÷ seasonal-naive scale"]
+    agg --> mase["MASE per model per horizon"]
+    mase --> out1["mean MASE<br/>→ which model wins"]
+    mase --> out2["MASE vs h<br/>→ where each model breaks"]
+```
+
+Nothing after an origin can reach the forecast made at it, so the estimate is
+honest at every window — and because each origin produces its own 24-step path,
+the result also shows *where* a model stops working, not just whether it won.
 
 ## Results
 
