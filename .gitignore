@@ -1,0 +1,7 @@
+.Rproj.user/
+.Rhistory
+.RData
+.DS_Store
+*_cache/
+*_files/
+docs/original-report.html
